@@ -2,9 +2,7 @@
 
 int main() {
 	Renderer r;
-	r.LoadVulkanLibrary();
-	r.LoadExportedFunctions();
-	r.LoadGlobalLevelEntryPoints();
+	r.PrepareVulkan();
 
 	return true;
 }

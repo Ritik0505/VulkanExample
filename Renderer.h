@@ -24,7 +24,7 @@ extern VulkanHandles handle;
 
 class Renderer
 {
-public:
+private:
 #if defined _WIN32
 	HMODULE VulkanLibrary;
 #endif
@@ -36,9 +36,15 @@ public:
 	bool LoadExportedFunctions();
 	bool LoadGlobalLevelEntryPoints();
 	bool LoadInstanceLevelEntryPoints();
+	bool LoadDeviceLevelEntryPoints();
 	bool CreateVulkanInstance();
 	bool CreateLogicalDevice();
 	bool CheckPhysicalDeviceProperties(VkPhysicalDevice device, uint32_t queuefamilyIndex);
+	bool GetDeviceQueue();
+
+public:
+	~Renderer();
+	bool PrepareVulkan();
 
 };
 

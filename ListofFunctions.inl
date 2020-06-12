@@ -24,18 +24,23 @@ VK_GLOBAL_LEVEL_FUNCTIONS( vkEnumerateInstanceExtensionProperties );
 #define VK_INSTANCE_LEVEL_FUNCTIONS( fun )
 #endif
 
+VK_INSTANCE_LEVEL_FUNCTIONS( vkDestroyInstance )
 VK_INSTANCE_LEVEL_FUNCTIONS( vkEnumeratePhysicalDevices )
 VK_INSTANCE_LEVEL_FUNCTIONS( vkGetPhysicalDeviceProperties )
 VK_INSTANCE_LEVEL_FUNCTIONS( vkGetPhysicalDeviceFeatures )
 VK_INSTANCE_LEVEL_FUNCTIONS( vkGetPhysicalDeviceQueueFamilyProperties )
 VK_INSTANCE_LEVEL_FUNCTIONS( vkCreateDevice )
 VK_INSTANCE_LEVEL_FUNCTIONS( vkGetDeviceProcAddr )
-VK_INSTANCE_LEVEL_FUNCTIONS( vkDestroyInstance )
+VK_INSTANCE_LEVEL_FUNCTIONS( vkEnumerateDeviceExtensionProperties )
 
 #undef VK_INSTANCE_LEVEL_FUNCTIONS
 
 #if !defined(VK_DEVICE_LEVEL_FUNCTIONS)
 #define VK_DEVICE_LEVEL_FUNCTIONS( fun )
 #endif
+
+VK_DEVICE_LEVEL_FUNCTIONS( vkGetDeviceQueue )
+VK_DEVICE_LEVEL_FUNCTIONS( vkDestroyDevice )
+VK_DEVICE_LEVEL_FUNCTIONS( vkDeviceWaitIdle )
 
 #undef VK_DEVICE_LEVEL_FUNCTIONS

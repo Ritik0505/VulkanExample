@@ -62,8 +62,19 @@ bool Renderer::LoadInstanceLevelEntryPoints()
 	}																				\
 
 #include "ListofFunctions.inl"
-#include <vector>
 	return true;
+}
+
+bool Renderer::LoadDeviceLevelEntryPoints()
+{
+#define VK_DEVICE_LEVEL_FUNCTIONS( fun )											\
+	if( !(fun = (PFN_##fun) vkGetDeviceProcAddr(handle.device, #fun)) ){			\
+		std::cout << "COULD NOT LOAD DEVICE LEVEL FUNCTION " << #fun << std::endl;	\
+		return false;																\
+	}																				\
+
+#include "ListofFunctions.inl"
+		return true;
 }
 
 bool Renderer::CreateVulkanInstance() {
@@ -149,6 +160,8 @@ bool Renderer::CreateLogicalDevice()
 		std::cout << "**COULD NOT CREATE LOGICAL DEVICE**" << std::endl;
 		return false;
 	}
+
+	handle.queueFamilyIndex = selectedQueueFamily;
 	return true;
 }
 
@@ -164,4 +177,86 @@ bool Renderer::CheckPhysicalDeviceProperties(VkPhysicalDevice device, uint32_t q
 		std::cout << "Physical device " << device << " doesn't support required parameters!" << std::endl;
 		return false;
 	}
+
+	uint32_t queueFamiliesCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamiliesCount, nullptr);
+	if (!queueFamiliesCount) {
+		std::cout << "Physical Device : " << device << "doesn't have any queue families " << std::endl;
+		return false;
+	}
+
+	std::vector<VkQueueFamilyProperties> queueFamiliesProperties(queueFamiliesCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamiliesCount, queueFamiliesProperties.data());
+
+	for (uint32_t i = 0; i < queueFamiliesCount; i++) {
+		if ((queueFamiliesProperties[i].queueCount > 0) && 
+			(queueFamiliesProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+			queuefamilyIndex = i;
+			return true;
+		}
+	}
+
+	std::cout << "Could not find queue family with required properties on physical device " << device << "!" << std::endl;
+	return false;
+}
+
+bool Renderer::GetDeviceQueue()
+{
+	vkGetDeviceQueue(handle.device, handle.queueFamilyIndex, 0, &handle.queue);
+	return true;
+}
+
+Renderer::~Renderer() {
+	if (handle.device != VK_NULL_HANDLE) {
+		vkDeviceWaitIdle(handle.device);
+		vkDestroyDevice(handle.device, nullptr);
+	}
+
+	if (handle.instance != VK_NULL_HANDLE) {
+		vkDestroyInstance(handle.instance, nullptr);
+	}
+
+	if (VulkanLibrary) {
+#if defined _WIN32
+	FreeLibrary(VulkanLibrary);
+#elif defined __linux__
+	dlclose(VulkanLibrary);
+#endif
+	}
+}
+
+bool Renderer::PrepareVulkan()
+{
+	if (!LoadVulkanLibrary() )
+		return false;
+
+	if (!LoadExportedFunctions()) {
+		return false;
+	}
+
+	if (!LoadGlobalLevelEntryPoints()) {
+		return false;
+	}
+
+	if (!CreateVulkanInstance()) {
+		return false;
+	}
+
+	if (!LoadInstanceLevelEntryPoints()) {
+		return false;
+	}
+
+	if (!CreateLogicalDevice()) {
+		return false;
+	}
+
+	if (!LoadDeviceLevelEntryPoints()) {
+		return false;
+	}
+
+	if (!GetDeviceQueue()) {
+		return false;
+	}
+
+	return true;
 }

@@ -14,10 +14,11 @@
 
 struct VulkanHandles
 {
-	VkInstance instance;
-	VkDevice device;
-	uint32_t queueFamilyIndex;
-	VkQueue queue;
+public:
+	VkInstance instance = VK_NULL_HANDLE;
+	VkDevice device = VK_NULL_HANDLE;
+	uint32_t queueFamilyIndex = VK_NULL_HANDLE;
+	VkQueue queue = VK_NULL_HANDLE;
 };
 
 extern VulkanHandles handle;

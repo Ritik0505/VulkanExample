@@ -20,7 +20,6 @@ bool Renderer::LoadVulkanLibrary() {
 		return false;
 	}
 #endif
-
 	return true;
 }
 
@@ -32,7 +31,7 @@ bool Renderer::LoadExportedFunctions() {
 #endif 
 
 #define VK_EXPORTED_FUNCTION( fun )											\
-	if (!(fun = (PFN_##fun) LoadProcAddress( VulkanLibrary, #fun )) ) {		\
+	if( !(fun = (PFN_##fun) LoadProcAddress( VulkanLibrary, #fun )) ) {		\
 		std::cout <<"**COULD NOT LOAD EXPORTED FUNCTION**" << #fun ;		\
 		return false;														\
 	}																		\
@@ -49,15 +48,14 @@ bool Renderer::LoadGlobalLevelEntryPoints(){
 	}																					  \
 
 #include "ListOfFunctions.inl"
-
 	return true;
 }																			
 
 bool Renderer::LoadInstanceLevelEntryPoints()
 {
-#define VK_INSTANCE_LEVEL_FUNCTIONS( fun )											\
-	if( !(fun = (PFN_##fun) vkGetInstanceProcAddr(handle.instance, #fun)) ){		\
-		std::cout << "COULD NOT LOAD GLOBAL LEVEL FUNCTION " << #fun << std::endl;	\
+#define VK_INSTANCE_LEVEL_FUNCTION( fun )											\
+	if( !(fun = (PFN_##fun) vkGetInstanceProcAddr( handle.instance, #fun)) ){		\
+		std::cout << "COULD NOT LOAD INSTANCE LEVEL FUNCTION " << #fun << std::endl;	\
 		return false;																\
 	}																				\
 
@@ -67,7 +65,7 @@ bool Renderer::LoadInstanceLevelEntryPoints()
 
 bool Renderer::LoadDeviceLevelEntryPoints()
 {
-#define VK_DEVICE_LEVEL_FUNCTIONS( fun )											\
+#define VK_DEVICE_LEVEL_FUNCTION( fun )											\
 	if( !(fun = (PFN_##fun) vkGetDeviceProcAddr(handle.device, #fun)) ){			\
 		std::cout << "COULD NOT LOAD DEVICE LEVEL FUNCTION " << #fun << std::endl;	\
 		return false;																\

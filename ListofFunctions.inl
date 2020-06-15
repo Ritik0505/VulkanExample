@@ -10,37 +10,37 @@ VK_EXPORTED_FUNCTION( vkGetInstanceProcAddr )
 
 // Loading Global Level Functions required to create instance
 
-#if !defined(VK_GLOBAL_LEVEL_FUNCTIONS)
-#define VK_GLOBAL_LEVEL_FUNCTIONS( fun )
+#if !defined(VK_GLOBAL_LEVEL_FUNCTION)
+#define VK_GLOBAL_LEVEL_FUNCTION( fun )
 #endif
 
-VK_GLOBAL_LEVEL_FUNCTIONS( vkCreateInstance );
-VK_GLOBAL_LEVEL_FUNCTIONS( vkEnumerateInstanceLayerProperties );
-VK_GLOBAL_LEVEL_FUNCTIONS( vkEnumerateInstanceExtensionProperties );
+VK_GLOBAL_LEVEL_FUNCTION( vkEnumerateInstanceLayerProperties )
+VK_GLOBAL_LEVEL_FUNCTION( vkEnumerateInstanceExtensionProperties )
+VK_GLOBAL_LEVEL_FUNCTION( vkCreateInstance )
 
-#undef VK_GLOBAL_LEVEL_FUNCTIONS
+#undef VK_GLOBAL_LEVEL_FUNCTION
 
-#if !defined(VK_INSTANCE_LEVEL_FUNCTIONS)
-#define VK_INSTANCE_LEVEL_FUNCTIONS( fun )
+#if !defined(VK_INSTANCE_LEVEL_FUNCTION)
+#define VK_INSTANCE_LEVEL_FUNCTION( fun )
 #endif
 
-VK_INSTANCE_LEVEL_FUNCTIONS( vkDestroyInstance )
-VK_INSTANCE_LEVEL_FUNCTIONS( vkEnumeratePhysicalDevices )
-VK_INSTANCE_LEVEL_FUNCTIONS( vkGetPhysicalDeviceProperties )
-VK_INSTANCE_LEVEL_FUNCTIONS( vkGetPhysicalDeviceFeatures )
-VK_INSTANCE_LEVEL_FUNCTIONS( vkGetPhysicalDeviceQueueFamilyProperties )
-VK_INSTANCE_LEVEL_FUNCTIONS( vkCreateDevice )
-VK_INSTANCE_LEVEL_FUNCTIONS( vkGetDeviceProcAddr )
-VK_INSTANCE_LEVEL_FUNCTIONS( vkEnumerateDeviceExtensionProperties )
+VK_INSTANCE_LEVEL_FUNCTION( vkEnumeratePhysicalDevices )
+VK_INSTANCE_LEVEL_FUNCTION( vkGetPhysicalDeviceProperties )
+VK_INSTANCE_LEVEL_FUNCTION( vkGetPhysicalDeviceFeatures )
+VK_INSTANCE_LEVEL_FUNCTION( vkGetPhysicalDeviceQueueFamilyProperties )
+VK_INSTANCE_LEVEL_FUNCTION( vkCreateDevice )
+VK_INSTANCE_LEVEL_FUNCTION( vkGetDeviceProcAddr )
+VK_INSTANCE_LEVEL_FUNCTION( vkEnumerateDeviceExtensionProperties )
+VK_INSTANCE_LEVEL_FUNCTION( vkDestroyInstance )
 
-#undef VK_INSTANCE_LEVEL_FUNCTIONS
+#undef VK_INSTANCE_LEVEL_FUNCTION
 
-#if !defined(VK_DEVICE_LEVEL_FUNCTIONS)
-#define VK_DEVICE_LEVEL_FUNCTIONS( fun )
+#if !defined(VK_DEVICE_LEVEL_FUNCTION)
+#define VK_DEVICE_LEVEL_FUNCTION( fun )
 #endif
 
-VK_DEVICE_LEVEL_FUNCTIONS( vkGetDeviceQueue )
-VK_DEVICE_LEVEL_FUNCTIONS( vkDestroyDevice )
-VK_DEVICE_LEVEL_FUNCTIONS( vkDeviceWaitIdle )
+VK_DEVICE_LEVEL_FUNCTION( vkGetDeviceQueue )
+VK_DEVICE_LEVEL_FUNCTION( vkDestroyDevice )
+VK_DEVICE_LEVEL_FUNCTION( vkDeviceWaitIdle )
 
-#undef VK_DEVICE_LEVEL_FUNCTIONS
+#undef VK_DEVICE_LEVEL_FUNCTION

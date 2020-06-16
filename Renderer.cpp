@@ -75,7 +75,45 @@ bool Renderer::LoadDeviceLevelEntryPoints()
 		return true;
 }
 
+bool Renderer::CheckExtensionAvailability(const char* extension, const std::vector<VkExtensionProperties>& availableExtensions)
+{
+	for (size_t i = 0; i < availableExtensions.size(); i++) {
+		if (strcmp(availableExtensions.at(i).extensionName, extension) == 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
 bool Renderer::CreateVulkanInstance() {
+
+	uint32_t extensionCount = 0;
+	if (vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr) != VK_SUCCESS) {
+		std::cout << "ERROR OCCURED DURING INSTANCE EXTENSIONS ENUMERATION " <<std::endl;
+		return false;
+	}
+
+	std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+	if (vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, availableExtensions.data()) != VK_SUCCESS) {
+		std::cout << "ERROR OCCURED DURING INSTANCE EXTENSIONS ENUMERATION " << std::endl;
+		return false;
+	}
+
+	std::vector<const char*> requiredExtensions = {
+		VK_KHR_SURFACE_EXTENSION_NAME,
+#if defined (VK_USE_PLATFORM_WIN32_KHR)
+		VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+#elif defined (VK_USE_PLATFORM_XCB_KHR)
+		VK_KHR_XCB_SURFACE_EXTENSION_NAME
+#endif
+	};
+
+	for (size_t i = 0; i < requiredExtensions.size(); ++i) {
+		if (!CheckExtensionAvailability(requiredExtensions.at(i), availableExtensions)) {
+			std::cout << "COULD NOT FIND INSTANCE EXTENSION NAMED \"" << requiredExtensions.at(i) << "\"!" << std::endl;
+			return false;
+		}
+	}
 
 	VkApplicationInfo applicationInfo = {};
 	applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -94,8 +132,8 @@ bool Renderer::CreateVulkanInstance() {
 	instanceCreateInfo.pApplicationInfo = &applicationInfo;
 	instanceCreateInfo.enabledLayerCount = 0;
 	instanceCreateInfo.ppEnabledLayerNames = nullptr;
-	instanceCreateInfo.enabledExtensionCount = 0;
-	instanceCreateInfo.ppEnabledExtensionNames = nullptr;
+	instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
+	instanceCreateInfo.ppEnabledExtensionNames = requiredExtensions.data();
 
 	if (vkCreateInstance(&instanceCreateInfo, nullptr, &handle.instance) != VK_SUCCESS) {
 		std::cout << "**FAILED TO CREATE INSTANCE**" << std::endl;
@@ -204,6 +242,37 @@ bool Renderer::GetDeviceQueue()
 	return true;
 }
 
+bool Renderer::CreatePresentationSurface()
+{
+#if defined VK_USE_PLATFORM_WIN32_KHR
+	VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
+	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+	surfaceCreateInfo.pNext = nullptr;
+	surfaceCreateInfo.flags = 0;
+	surfaceCreateInfo.hinstance = window.Instance;
+	surfaceCreateInfo.hwnd = window.Handle;
+
+	if (vkCreateWin32SurfaceKHR(handle.instance, &surfaceCreateInfo, nullptr, &handle.presentationSurface) == VK_SUCCESS) {
+		return true;
+	}
+
+#elif defined VK_USE_PLATFORM_XCB_KHR
+	VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = {};
+	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+	surfaceCreateInfo.pNext = nullptr;
+	surfaceCreateInfo.flags = 0;
+	surfaceCreateInfo.connection = window.Connection;
+	surfaceCreateInfo.window = window.Handle;
+
+	if (vkCreateXCBSurfaceKHR(handle.instance, &surfaceCreateInfo, nullptr, &handle.presentationSurface) == VK_SUCCESS) {
+		return true;
+	}
+#endif
+	
+	std::cout << "COULD NOT CREATE PRESENT SURFACE" << std::endl;
+	return false;
+}
+
 Renderer::~Renderer() {
 	if (handle.device != VK_NULL_HANDLE) {
 		vkDeviceWaitIdle(handle.device);
@@ -223,8 +292,10 @@ Renderer::~Renderer() {
 	}
 }
 
-bool Renderer::PrepareVulkan()
+bool Renderer::PrepareVulkan(OS::WindowParameters parameters)
 {
+	window = parameters;
+
 	if (!LoadVulkanLibrary() )
 		return false;
 
@@ -244,6 +315,9 @@ bool Renderer::PrepareVulkan()
 		return false;
 	}
 
+	if (!CreatePresentationSurface()) {
+		return false;
+	}
 	if (!CreateLogicalDevice()) {
 		return false;
 	}

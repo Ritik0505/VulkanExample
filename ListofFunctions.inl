@@ -33,6 +33,19 @@ VK_INSTANCE_LEVEL_FUNCTION( vkGetDeviceProcAddr )
 VK_INSTANCE_LEVEL_FUNCTION( vkEnumerateDeviceExtensionProperties )
 VK_INSTANCE_LEVEL_FUNCTION( vkDestroyInstance )
 
+//SWAPCHAIN EXTENSION FUNCTIONS
+VK_INSTANCE_LEVEL_FUNCTION( vkDestroySurfaceKHR )
+VK_INSTANCE_LEVEL_FUNCTION( vkGetPhysicalDeviceSurfaceSupportKHR )
+VK_INSTANCE_LEVEL_FUNCTION( vkGetPhysicalDeviceSurfaceCapabilitiesKHR )
+VK_INSTANCE_LEVEL_FUNCTION( vkGetPhysicalDeviceSurfaceFormatsKHR )
+VK_INSTANCE_LEVEL_FUNCTION( vkGetPhysicalDeviceSurfacePresentModesKHR )
+
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+VK_INSTANCE_LEVEL_FUNCTION( vkCreateWin32SurfaceKHR )
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+VK_INSTANCE_LEVEL_FUNCTION( vkCreateXcbSurfaceKHR )
+#endif
+
 #undef VK_INSTANCE_LEVEL_FUNCTION
 
 #if !defined(VK_DEVICE_LEVEL_FUNCTION)

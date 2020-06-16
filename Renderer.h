@@ -2,13 +2,13 @@
 #define VK_NO_PROTOTYPES 
 
 #if defined _WIN32
-	#include "windows.h"
+#define VK_USE_PLATFORM_WIN32_KHR
 #elif defined __linux__
-	#include <xcb/xcb.h>
-	#include <X11/Xlib.h>
+#define VK_USE_PLATFORM_XCB_KHR
 #endif
 
 #include "vulkan.h"
+#include "OperatingSystem.h"
 #include<iostream>
 #include "vector"
 
@@ -19,11 +19,16 @@ public:
 	VkDevice device = VK_NULL_HANDLE;
 	uint32_t queueFamilyIndex = VK_NULL_HANDLE;
 	VkQueue queue = VK_NULL_HANDLE;
+	uint32_t graphicsQueueFamilyIndex = 0;
+	uint32_t presentationQueueFamilyIndex = 0;
+	VkSurfaceKHR presentationSurface = VK_NULL_HANDLE;
+	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+
 };
 
 extern VulkanHandles handle;
 
-class Renderer
+class Renderer : public OS::ProjectBase
 {
 private:
 #if defined _WIN32
@@ -33,19 +38,25 @@ private:
 	void* VulkanLibrary;
 #endif
 
+	OS::WindowParameters window;
+
 	bool LoadVulkanLibrary();
 	bool LoadExportedFunctions();
 	bool LoadGlobalLevelEntryPoints();
 	bool LoadInstanceLevelEntryPoints();
 	bool LoadDeviceLevelEntryPoints();
+	bool CheckExtensionAvailability(const char* extension, const std::vector<VkExtensionProperties>& availableExtensions);
 	bool CreateVulkanInstance();
 	bool CreateLogicalDevice();
 	bool CheckPhysicalDeviceProperties(VkPhysicalDevice device, uint32_t queuefamilyIndex);
 	bool GetDeviceQueue();
+	bool CreatePresentationSurface();
+
 
 public:
+	Renderer();
 	~Renderer();
-	bool PrepareVulkan();
+	bool PrepareVulkan( OS::WindowParameters parameters);
 
 };
 

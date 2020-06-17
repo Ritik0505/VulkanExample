@@ -158,9 +158,11 @@ bool Renderer::CreateLogicalDevice()
 	}
 
 	VkPhysicalDevice selectedDevice = VK_NULL_HANDLE;
-	uint32_t selectedQueueFamily = UINT32_MAX;
+	uint32_t selectedGraphicsQueueFamilyIndex = UINT32_MAX;
+	uint32_t selectedPresentQueueFamilyIndex = UINT32_MAX;
+
 	for (auto device : PhysicalDevices) {
-		if (CheckPhysicalDeviceProperties(device, selectedQueueFamily)) {
+		if (CheckPhysicalDeviceProperties(device, selectedGraphicsQueueFamilyIndex, selectedPresentQueueFamilyIndex)) {
 			selectedDevice = device;
 			break;
 		}
@@ -172,24 +174,41 @@ bool Renderer::CreateLogicalDevice()
 	}
 
 	std::vector<float> queuePriorites = { 1.0f };
-	VkDeviceQueueCreateInfo queueCreateInfo = {};
-	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queueCreateInfo.pNext = nullptr;
-	queueCreateInfo.flags = 0;
-	queueCreateInfo.queueFamilyIndex = selectedQueueFamily;
-	queueCreateInfo.queueCount = static_cast<uint32_t>(queuePriorites.size());
-	queueCreateInfo.pQueuePriorities = queuePriorites.data();
+	std::vector<VkDeviceQueueCreateInfo> queueCreateInfo;
+	queueCreateInfo.push_back({
+	VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+	nullptr,
+	0,
+	selectedGraphicsQueueFamilyIndex,
+	static_cast<uint32_t>(queuePriorites.size()),
+	queuePriorites.data(),
+	});
+
+	if (selectedGraphicsQueueFamilyIndex != selectedPresentQueueFamilyIndex) {
+		queueCreateInfo.push_back({
+		VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+		nullptr,
+		0,
+		selectedPresentQueueFamilyIndex,
+		static_cast<uint32_t>(queuePriorites.size()),
+		queuePriorites.data(),
+			});
+	}
+
+	std::vector<const char*> requiredExtensions = {
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	};
 
 	VkDeviceCreateInfo deviceCreateInfo = {};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	deviceCreateInfo.pNext = nullptr;
 	deviceCreateInfo.flags = 0;
 	deviceCreateInfo.queueCreateInfoCount = 1;
-	deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+	deviceCreateInfo.pQueueCreateInfos = queueCreateInfo.data();
 	deviceCreateInfo.enabledLayerCount = 0;
 	deviceCreateInfo.ppEnabledLayerNames = nullptr;
-	deviceCreateInfo.enabledExtensionCount = 0;
-	deviceCreateInfo.ppEnabledExtensionNames = nullptr;
+	deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
+	deviceCreateInfo.ppEnabledExtensionNames = requiredExtensions.data();
 	deviceCreateInfo.pEnabledFeatures = nullptr;
 
 	if (vkCreateDevice(selectedDevice, &deviceCreateInfo, nullptr, &handle.device) != VK_SUCCESS) {
@@ -197,12 +216,36 @@ bool Renderer::CreateLogicalDevice()
 		return false;
 	}
 
-	handle.queueFamilyIndex = selectedQueueFamily;
+	handle.graphicsQueueFamilyIndex = selectedGraphicsQueueFamilyIndex;
+	handle.presentationQueueFamilyIndex = selectedPresentQueueFamilyIndex;
 	return true;
 }
 
-bool Renderer::CheckPhysicalDeviceProperties(VkPhysicalDevice device, uint32_t queuefamilyIndex)
+bool Renderer::CheckPhysicalDeviceProperties(VkPhysicalDevice device, uint32_t& selectedGraphicsQueuefamilyIndex, uint32_t& selectedPresentQueueFamilyIndex)
 {
+	uint32_t extensionCount = 0;
+	if (vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr) != VK_SUCCESS) {
+		std::cout << "COULD NOT ENUMERATE DEVICE EXTENSION PROPERTIES" << device << std::endl;
+		return false;
+	}
+
+	std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+	if (vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data()) != VK_SUCCESS) {
+		std::cout << "COULD NOT ENUMERATE DEVICE EXTENSION PROPERTIES" << device << std::endl;
+		return false;
+	}
+
+	std::vector<const char*> requiredExtensions = {
+		VK_KHR_SURFACE_EXTENSION_NAME,
+	};
+
+	for (size_t i = 0; i < requiredExtensions.size(); i++) {
+		if (CheckExtensionAvailability(requiredExtensions.at(i), availableExtensions)) {
+			std::cout << "PHYSICAL DEVICE" << device << "DOES NOT SUPPORT EXTENSION \"" << requiredExtensions.at(i) << std::endl;
+			return false;
+		}
+	}
+
 	VkPhysicalDeviceProperties deviceProperties;
 	VkPhysicalDeviceFeatures deviceFeatures;
 
@@ -222,18 +265,47 @@ bool Renderer::CheckPhysicalDeviceProperties(VkPhysicalDevice device, uint32_t q
 	}
 
 	std::vector<VkQueueFamilyProperties> queueFamiliesProperties(queueFamiliesCount);
+	std::vector<VkBool32> queuePresentSupport(queueFamiliesCount);
+
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamiliesCount, queueFamiliesProperties.data());
 
+	uint32_t graphicsQueuefamilyIndex = UINT32_MAX;
+	uint32_t presentQueueFamilyIndex = UINT32_MAX;
+
 	for (uint32_t i = 0; i < queueFamiliesCount; i++) {
-		if ((queueFamiliesProperties[i].queueCount > 0) && 
+		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, handle.presentationSurface, &queuePresentSupport[i]);
+		if ((queueFamiliesProperties[i].queueCount > 0) &&
 			(queueFamiliesProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
-			queuefamilyIndex = i;
-			return true;
+			//Selecting queue that support graphics first
+			if (graphicsQueuefamilyIndex == UINT32_MAX) {
+				graphicsQueuefamilyIndex = i;
+			}
+
+			//Selecting Queue that supports both graphics and presentation (if there is any)
+			if (queuePresentSupport[i]) {
+				selectedGraphicsQueuefamilyIndex = i;
+				selectedPresentQueueFamilyIndex = i;
+				return true;
+			}
+		}
+	}
+	
+	//If there is no queue that supports both graphics and presentation we have to select separate presentation queue
+	for (uint32_t i = 0; i < queueFamiliesCount; i++) {
+		if (queuePresentSupport[i]) {
+			presentQueueFamilyIndex = i;
+			break;
 		}
 	}
 
-	std::cout << "Could not find queue family with required properties on physical device " << device << "!" << std::endl;
-	return false;
+	if (graphicsQueuefamilyIndex == UINT32_MAX || presentQueueFamilyIndex == UINT32_MAX) {
+		std::cout << "Could not find queue family with required properties on physical device " << device << "!" << std::endl;
+		return false;
+	}
+
+	selectedGraphicsQueuefamilyIndex = graphicsQueuefamilyIndex;
+	selectedPresentQueueFamilyIndex = presentQueueFamilyIndex;
+	return true;
 }
 
 bool Renderer::GetDeviceQueue()

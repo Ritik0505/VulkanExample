@@ -48,7 +48,7 @@ private:
 	bool CheckExtensionAvailability(const char* extension, const std::vector<VkExtensionProperties>& availableExtensions);
 	bool CreateVulkanInstance();
 	bool CreateLogicalDevice();
-	bool CheckPhysicalDeviceProperties(VkPhysicalDevice device, uint32_t queuefamilyIndex);
+	bool CheckPhysicalDeviceProperties(VkPhysicalDevice device, uint32_t& selectedGraphicsQueuefamilyIndex, uint32_t& selectedPpresentQueueFamilyIndex);
 	bool GetDeviceQueue();
 	bool CreatePresentationSurface();
 

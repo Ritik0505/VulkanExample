@@ -16,13 +16,17 @@ struct VulkanHandles
 {
 public:
 	VkInstance instance = VK_NULL_HANDLE;
+	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDevice device = VK_NULL_HANDLE;
 	uint32_t queueFamilyIndex = VK_NULL_HANDLE;
-	VkQueue queue = VK_NULL_HANDLE;
+	VkQueue graphicsQueue = VK_NULL_HANDLE;
+	VkQueue presentQueue = VK_NULL_HANDLE;
 	uint32_t graphicsQueueFamilyIndex = 0;
 	uint32_t presentationQueueFamilyIndex = 0;
 	VkSurfaceKHR presentationSurface = VK_NULL_HANDLE;
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+	VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
+	VkSemaphore renderingFinishedSemaphore = VK_NULL_HANDLE;
 
 };
 
@@ -51,7 +55,8 @@ private:
 	bool CheckPhysicalDeviceProperties(VkPhysicalDevice device, uint32_t& selectedGraphicsQueuefamilyIndex, uint32_t& selectedPpresentQueueFamilyIndex);
 	bool GetDeviceQueue();
 	bool CreatePresentationSurface();
-
+	bool CreateSemaphores();
+	bool CreateSwapchain();
 
 public:
 	Renderer();

@@ -56,4 +56,12 @@ VK_DEVICE_LEVEL_FUNCTION( vkGetDeviceQueue )
 VK_DEVICE_LEVEL_FUNCTION( vkDestroyDevice )
 VK_DEVICE_LEVEL_FUNCTION( vkDeviceWaitIdle )
 
+//SwapChain extension function
+VK_DEVICE_LEVEL_FUNCTION( vkCreateSwapchainKHR )
+VK_DEVICE_LEVEL_FUNCTION( vkDestroySurfaceKHR )
+VK_DEVICE_LEVEL_FUNCTION( vkGetSwapchainImagesKHR )
+VK_DEVICE_LEVEL_FUNCTION( vkAcquireNextImageKHR )
+VK_DEVICE_LEVEL_FUNCTION( vkQueuePresentKHR )
+VK_DEVICE_LEVEL_FUNCTION( vkCreateSemaphore )
+
 #undef VK_DEVICE_LEVEL_FUNCTION

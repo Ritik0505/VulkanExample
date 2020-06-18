@@ -310,7 +310,8 @@ bool Renderer::CheckPhysicalDeviceProperties(VkPhysicalDevice device, uint32_t& 
 
 bool Renderer::GetDeviceQueue()
 {
-	vkGetDeviceQueue(handle.device, handle.queueFamilyIndex, 0, &handle.queue);
+	vkGetDeviceQueue(handle.device, handle.graphicsQueueFamilyIndex, 0, &handle.graphicsQueue);
+	vkGetDeviceQueue(handle.device, handle.presentationQueueFamilyIndex, 0, &handle.presentQueue);
 	return true;
 }
 
@@ -340,9 +341,113 @@ bool Renderer::CreatePresentationSurface()
 		return true;
 	}
 #endif
-	
+
 	std::cout << "COULD NOT CREATE PRESENT SURFACE" << std::endl;
 	return false;
+}
+
+bool Renderer::CreateSemaphores()
+{
+	VkSemaphoreCreateInfo SemaphoreCreateInfo = {};
+	SemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	SemaphoreCreateInfo.flags = 0;
+	SemaphoreCreateInfo.pNext = nullptr;
+
+	if ((vkCreateSemaphore(handle.device, &SemaphoreCreateInfo, nullptr, &handle.imageAvailableSemaphore) != VK_SUCCESS)
+		|| (vkCreateSemaphore(handle.device, &SemaphoreCreateInfo, nullptr, &handle.renderingFinishedSemaphore) != VK_SUCCESS)) {
+		std::cout << "COULD NOT CREATE SEMAPHORE " << std::endl;
+		return false;
+	}
+	return false;
+}
+
+bool Renderer::CreateSwapchain()
+{
+	// Acquiring Surface Capabilities
+	VkSurfaceCapabilitiesKHR surfaceCapabilities;
+	if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(handle.physicalDevice, handle.presentationSurface, &surfaceCapabilities) != VK_SUCCESS) {
+		std::cout << "COULD NOT CHECK PRESENTATION SURFACE CAPABILITIES " << std::endl;
+		return false;
+	}
+
+	// Acquiring Supported Surface Formats
+	uint32_t formatsCount = 0;
+	if (vkGetPhysicalDeviceSurfaceFormatsKHR(handle.physicalDevice, handle.presentationSurface, &formatsCount, nullptr) != VK_SUCCESS) {
+		std::cout << "ERROR OCCURRED DURING PRESENTATION SURFACE FORMAT ENUMERATION " << std::endl;
+		return false;
+	}
+
+	std::vector<VkSurfaceFormatKHR> surfaceFormats(formatsCount);
+	if (vkGetPhysicalDeviceSurfaceFormatsKHR(handle.physicalDevice, handle.presentationSurface, &formatsCount, surfaceFormats.data()) != VK_SUCCESS) {
+		std::cout << "ERROR OCCURRED DURING PRESENTAION SURFACE FORMAT ENUMERATION " << std::endl;
+		return false;
+	}
+
+	//Acquiring Supported Presentation Modes
+	uint32_t presentModesCount = 0;
+	if (vkGetPhysicalDeviceSurfacePresentModesKHR(handle.physicalDevice, handle.presentationSurface, &presentModesCount, nullptr) != VK_SUCCESS) {
+		std::cout << "ERROR OCCURRED DURING PRESENTATION SURFACE PRESENT MODES ENUMERATION " << std::endl;
+		return false;
+	}
+
+	std::vector<VkPresentModeKHR> presentModes(presentModesCount);
+	if (vkGetPhysicalDeviceSurfacePresentModesKHR(handle.physicalDevice, handle.presentationSurface, &presentModesCount, presentModes.data()) != VK_SUCCESS) {
+		std::cout << "ERROR OCCURRED DURING PRESENTATION SURFACE PRESENT MODES ENUMERATION " << std::endl;
+		return false;
+	}
+	return true;
+}
+
+uint32_t Renderer::GetSwapChainNumImages(VkSurfaceCapabilitiesKHR& surfaceCapabilities)
+{
+	uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
+	if ((surfaceCapabilities.maxImageCount > 0) && (imageCount > surfaceCapabilities.minImageCount)){
+	imageCount = surfaceCapabilities.maxImageCount;
+}
+ 	return uint32_t(imageCount);
+}
+
+VkSurfaceFormatKHR Renderer::GetSwapChainFormat(std::vector<VkSurfaceFormatKHR>& surfaceFormats)
+{
+	// If the list contains only one one entry with undefined format
+	// It means that there are no preferred surface formats and any one can be chosen
+
+	if ((surfaceFormats.size() == 1) && (surfaceFormats.at(0).format == VK_FORMAT_UNDEFINED)) {
+		return VkSurfaceFormatKHR({ VK_FORMAT_R8G8B8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR });
+	}
+
+	//Else check if list contains R8 G8 B8 A8 format with Non Linear ColorSpace
+	for (VkSurfaceFormatKHR& format : surfaceFormats) {
+		if (format.format == VK_FORMAT_R8G8B8A8_UNORM) {
+			return format;
+		}
+	}
+
+	// Returning the first format from the list
+	return surfaceFormats.at(0);
+}
+
+VkExtent2D Renderer::GetSwapChainExtent(VkSurfaceCapabilitiesKHR& surfaceCapabilities)
+{
+	//If width == height == -1
+	//we define the size by ourselves but it must fit within defined confines
+	if (surfaceCapabilities.currentExtent.width == -1) {
+		VkExtent2D swapchainExtent = { 800, 600 };
+		if (swapchainExtent.width < surfaceCapabilities.minImageExtent.width) {
+			swapchainExtent.width = surfaceCapabilities.minImageExtent.width;
+		}
+		if (swapchainExtent.height < surfaceCapabilities.minImageExtent.height) {
+			swapchainExtent.height = surfaceCapabilities.minImageExtent.height;
+		}
+		if (swapchainExtent.width > surfaceCapabilities.maxImageExtent.width) {
+			swapchainExtent.width = surfaceCapabilities.maxImageExtent.width;
+		}
+		if (swapchainExtent.height > surfaceCapabilities.maxImageExtent.height) {
+			swapchainExtent.height = surfaceCapabilities.maxImageExtent.height;
+		}
+		return swapchainExtent;
+	}
+	return surfaceCapabilities.currentExtent;
 }
 
 Renderer::~Renderer() {

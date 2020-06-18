@@ -395,6 +395,48 @@ bool Renderer::CreateSwapchain()
 		std::cout << "ERROR OCCURRED DURING PRESENTATION SURFACE PRESENT MODES ENUMERATION " << std::endl;
 		return false;
 	}
+
+	// For SwapChain creatInfo data fields
+// 	uint32_t noOfImages = GetSwapChainNumImages(surfaceCapabilities);
+// 	VkSurfaceFormat
+
+	VkSwapchainCreateInfoKHR swapchainCreateInfo = {};
+	swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	swapchainCreateInfo.pNext = nullptr;
+	swapchainCreateInfo.flags = 0;
+	swapchainCreateInfo.surface = handle.presentationSurface;
+	swapchainCreateInfo.minImageCount = GetSwapChainNumImages(surfaceCapabilities);
+	
+	VkSurfaceFormatKHR format = GetSwapChainFormat(surfaceFormats);
+	swapchainCreateInfo.imageFormat = format.format;
+	swapchainCreateInfo.imageColorSpace = format.colorSpace;
+
+	swapchainCreateInfo.imageExtent = GetSwapChainExtent(surfaceCapabilities);
+
+// 	imageArrayLayers – Defines the number of layers in a swap chain images(that is, views); 
+// 	typically this value will be one but if we want to create multiview or stereo(stereoscopic 3D) images,
+//	we can set it to some higher value.
+	swapchainCreateInfo.imageArrayLayers = 1;
+
+	swapchainCreateInfo.imageUsage = GetSwapChainUsageFlags(surfaceCapabilities);
+	swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	swapchainCreateInfo.queueFamilyIndexCount = 0;
+	swapchainCreateInfo.pQueueFamilyIndices = nullptr;
+	swapchainCreateInfo.preTransform = GetSwapChainTransform(surfaceCapabilities);
+	swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	swapchainCreateInfo.presentMode = GetSwapChainPresentMode(presentModes);
+	swapchainCreateInfo.clipped = VK_TRUE;
+	swapchainCreateInfo.oldSwapchain = handle.swapChain;
+
+	if (vkCreateSwapchainKHR(handle.device, &swapchainCreateInfo, nullptr, &handle.swapChain)) {
+		std::cout << "COULD NOT CREATE SWAPCHAIN " << std::endl;
+		return false;
+	}
+
+	if (handle.swapChain != VK_NULL_HANDLE) {
+		vkDestroySwapchainKHR(handle.device, handle.swapChain, nullptr);
+	}
+	
 	return true;
 }
 
@@ -413,7 +455,7 @@ VkSurfaceFormatKHR Renderer::GetSwapChainFormat(std::vector<VkSurfaceFormatKHR>&
 	// It means that there are no preferred surface formats and any one can be chosen
 
 	if ((surfaceFormats.size() == 1) && (surfaceFormats.at(0).format == VK_FORMAT_UNDEFINED)) {
-		return VkSurfaceFormatKHR({ VK_FORMAT_R8G8B8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR });
+		return VkSurfaceFormatKHR{ VK_FORMAT_R8G8B8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR });
 	}
 
 	//Else check if list contains R8 G8 B8 A8 format with Non Linear ColorSpace
@@ -448,6 +490,54 @@ VkExtent2D Renderer::GetSwapChainExtent(VkSurfaceCapabilitiesKHR& surfaceCapabil
 		return swapchainExtent;
 	}
 	return surfaceCapabilities.currentExtent;
+}
+
+VkImageUsageFlags Renderer::GetSwapChainUsageFlags(VkSurfaceCapabilitiesKHR& surfaceCapabilities)
+{
+	if (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
+		return VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	}
+
+	std::cout << "VK_IMAGE_USAGE_TRANSFER_DST_BIT not supported by SwapChain " << std::endl;
+	std::cout << "Supported Usage Flags include: " << std::endl
+		<< (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT ? "VK_IMAGE_USAGE_TRANSFER_SRC_BIT\n" : "")
+		<< (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT ? "VK_IMAGE_USAGE_TRANSFER_DST_BIT\n" : "")
+		<< (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_SAMPLED_BIT ? "VK_IMAGE_USAGE_SAMPLED_BIT\n" : "")
+		<< (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_STORAGE_BIT ? "VK_IMAGE_USAGE_STORAGE_BIT\n" : "")
+		<< (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT ? "VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT\n" : "")
+		<< (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT ? "VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT\n" : "")
+		<< (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT ? "VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT\n" : "")
+		<< (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT ? "VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT\n" : "")
+		<< std::endl;
+
+	return static_cast<VkImageUsageFlags>(-1);
+}
+
+VkSurfaceTransformFlagBitsKHR Renderer::GetSwapChainTransform(VkSurfaceCapabilitiesKHR& surfaceCapabilities)
+{
+	if (surfaceCapabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
+		return VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+	}
+	return surfaceCapabilities.currentTransform;
+}
+
+VkPresentModeKHR Renderer::GetSwapChainPresentMode(std::vector<VkPresentModeKHR>& presentModes)
+{
+	for (VkPresentModeKHR& mode : presentModes) {
+		if (mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+			return mode;
+		}
+	}
+
+	//This mode is always available
+	for (VkPresentModeKHR& mode : presentModes) {
+		if (mode == VK_PRESENT_MODE_FIFO_KHR) {
+			return mode;
+		}
+	}
+
+	std::cout << "EVEN FIFO_MODE NOT SUPPORTED" << std::endl;
+	return static_cast<VkPresentModeKHR>(-1);
 }
 
 Renderer::~Renderer() {

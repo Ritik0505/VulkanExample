@@ -58,6 +58,10 @@ private:
 	bool CreateSemaphores();
 	bool CreateSwapchain();
 
+	uint32_t GetSwapChainNumImages(VkSurfaceCapabilitiesKHR& surfaceCapabilities);
+	VkSurfaceFormatKHR GetSwapChainFormat(std::vector<VkSurfaceFormatKHR>& surfaceFormats);
+	VkExtent2D GetSwapChainExtent(VkSurfaceCapabilitiesKHR& surfaceCapabilities);
+
 public:
 	Renderer();
 	~Renderer();

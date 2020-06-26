@@ -559,6 +559,75 @@ Renderer::~Renderer() {
 	}
 }
 
+bool Renderer::CreateCommandBuffers()
+{
+	VkCommandPoolCreateInfo commandPoolCreateInfo = {};
+	commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	commandPoolCreateInfo.pNext = nullptr;
+	commandPoolCreateInfo.flags = 0;
+	commandPoolCreateInfo.queueFamilyIndex = handle.presentationQueueFamilyIndex;
+
+	if (vkCreateCommandPool(handle.device, &commandPoolCreateInfo, nullptr, &handle.presentQueueCommandPool) != VK_SUCCESS) {
+		std::cout << "ERROR WHILE CREATING COMMAND POOL " << std::endl;
+		return false;
+	}
+
+	uint32_t imageCount = 0;
+	if (vkGetSwapchainImagesKHR(handle.device, handle.swapChain, &imageCount, nullptr) != VK_SUCCESS) {
+		std::cout << "COULD NOT GET NUMBER OF SWAPCHAIN IMAGES " << std::endl;
+		return false;
+	}
+
+	handle.presentQueueCommandBuffers.resize(imageCount);
+	VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
+	commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	commandBufferAllocateInfo.pNext = nullptr;
+	commandBufferAllocateInfo.commandPool = handle.presentQueueCommandPool;
+	commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	commandBufferAllocateInfo.commandBufferCount = imageCount;
+
+	if (vkAllocateCommandBuffers(handle.device, &commandBufferAllocateInfo, handle.presentQueueCommandBuffers.data()) != VK_SUCCESS) {
+		std::cout << "COULD NOT ALLOCATE COMMAND BUFFERS FROM COMMAND POOL " << std::endl;
+		return false;
+	}
+
+	if (!RecordCommandBuffers()) {
+		std::cout << "COULD NOT RECORD COMMAND BUFFERS " << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
+bool Renderer::RecordCommandBuffers() {
+	uint32_t imageCount = static_cast<uint32_t>(handle.presentQueueCommandBuffers.size());
+
+	std::vector<VkImage> swapchainImages(imageCount);
+	if (vkGetSwapchainImagesKHR(handle.device, handle.swapChain, &imageCount, swapchainImages.data()) != VK_SUCCESS) {
+		std::cout << "COULD NOT GET SWAPCHAIN IMAGES HANDLES " << std::endl;
+		return false;
+	}
+
+	VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
+	cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	cmdBufferBeginInfo.pNext = nullptr;
+	cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+	cmdBufferBeginInfo.pInheritanceInfo = nullptr;
+
+	VkClearColorValue clearColor = { 
+		{1.0f, 0.8f, 0.4f, 0.0f} 
+	};
+
+	VkImageSubresourceRange imageSubresourceRange = {};
+	imageSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	imageSubresourceRange.baseMipLevel = 0;
+	imageSubresourceRange.levelCount = 1;
+	imageSubresourceRange.baseArrayLayer = 0;
+	imageSubresourceRange.layerCount = 1;
+
+
+	return true;
+}
 bool Renderer::OnWindowSizeChanged() {
 	Clear();
 

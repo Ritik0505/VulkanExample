@@ -43,5 +43,6 @@
     <None Include="ListofFunctions.inl">
       <Filter>Header Files</Filter>
     </None>
+    <None Include="README.md" />
   </ItemGroup>
 </Project>

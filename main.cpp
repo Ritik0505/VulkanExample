@@ -10,6 +10,14 @@ int main() {
 	}
 	r.PrepareVulkan(window.GetParameters());
 
+	if (!r.CreateSwapchain()) {
+		return -1;
+	}
+
+	if (!r.CreateCommandBuffers()) {
+		return -1;
+	}
+
 	if (!window.RenderingLoop(r)) {
 		return -1;
 	}

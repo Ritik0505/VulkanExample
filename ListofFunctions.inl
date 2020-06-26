@@ -55,17 +55,24 @@ VK_INSTANCE_LEVEL_FUNCTION( vkCreateXcbSurfaceKHR )
 VK_DEVICE_LEVEL_FUNCTION( vkGetDeviceQueue )
 VK_DEVICE_LEVEL_FUNCTION( vkDestroyDevice )
 VK_DEVICE_LEVEL_FUNCTION( vkDeviceWaitIdle )
+VK_DEVICE_LEVEL_FUNCTION( vkQueueSubmit )
+VK_DEVICE_LEVEL_FUNCTION( vkCreateCommandPool )
+VK_DEVICE_LEVEL_FUNCTION( vkAllocateCommandBuffers )
+VK_DEVICE_LEVEL_FUNCTION( vkBeginCommandBuffer )
+VK_DEVICE_LEVEL_FUNCTION( vkCmdPipelineBarrier )
+VK_DEVICE_LEVEL_FUNCTION( vkCmdClearColorImage )
+VK_DEVICE_LEVEL_FUNCTION( vkEndCommandBuffer )
+VK_DEVICE_LEVEL_FUNCTION( vkFreeCommandBuffers )
+VK_DEVICE_LEVEL_FUNCTION( vkDestroyCommandPool )
+VK_DEVICE_LEVEL_FUNCTION( vkDestroySemaphore )
 
 //SwapChain extension function
 VK_DEVICE_LEVEL_FUNCTION( vkCreateSwapchainKHR )
-VK_DEVICE_LEVEL_FUNCTION( vkDestroySurfaceKHR )
 VK_DEVICE_LEVEL_FUNCTION( vkGetSwapchainImagesKHR )
 VK_DEVICE_LEVEL_FUNCTION( vkAcquireNextImageKHR )
 VK_DEVICE_LEVEL_FUNCTION( vkQueuePresentKHR )
 VK_DEVICE_LEVEL_FUNCTION( vkCreateSemaphore )
 VK_DEVICE_LEVEL_FUNCTION( vkDestroySwapchainKHR )
-VK_DEVICE_LEVEL_FUNCTION( vkQueueSubmit )
-VK_DEVICE_LEVEL_FUNCTION( vkCreateCommandPool )
-VK_DEVICE_LEVEL_FUNCTION( vkAllocateCommandBuffers )
+
 
 #undef VK_DEVICE_LEVEL_FUNCTION

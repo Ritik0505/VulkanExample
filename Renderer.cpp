@@ -541,9 +541,28 @@ VkPresentModeKHR Renderer::GetSwapChainPresentMode(std::vector<VkPresentModeKHR>
 }
 
 Renderer::~Renderer() {
+	Clear();
+
 	if (handle.device != VK_NULL_HANDLE) {
 		vkDeviceWaitIdle(handle.device);
+
+		if (handle.imageAvailableSemaphore != VK_NULL_HANDLE) {
+			vkDestroySemaphore(handle.device, handle.imageAvailableSemaphore, nullptr);
+		}
+
+		if (handle.renderingFinishedSemaphore != VK_NULL_HANDLE) {
+			vkDestroySemaphore(handle.device, handle.renderingFinishedSemaphore, nullptr);
+		}
+
+		if (handle.swapChain != VK_NULL_HANDLE) {
+			vkDestroySwapchainKHR(handle.device, handle.swapChain, nullptr);
+		}
+
 		vkDestroyDevice(handle.device, nullptr);
+	}
+
+	if (handle.presentationSurface != VK_NULL_HANDLE) {
+		vkDestroySurfaceKHR(handle.instance, handle.presentationSurface, nullptr);
 	}
 
 	if (handle.instance != VK_NULL_HANDLE) {
@@ -625,9 +644,65 @@ bool Renderer::RecordCommandBuffers() {
 	imageSubresourceRange.baseArrayLayer = 0;
 	imageSubresourceRange.layerCount = 1;
 
+	for (uint32_t i = 0; i < imageCount; i++) {
+		VkImageMemoryBarrier memoryBarrier_present_to_clear = {};
+		memoryBarrier_present_to_clear.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+		memoryBarrier_present_to_clear.pNext = nullptr;
+		memoryBarrier_present_to_clear.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT; //srcAccessMask – Types of memory operations done on the image before the barrier.
+		memoryBarrier_present_to_clear.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; //dstAccessMask – Types of memory operations that will take place after the barrier.
+		memoryBarrier_present_to_clear.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		memoryBarrier_present_to_clear.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		memoryBarrier_present_to_clear.srcQueueFamilyIndex = handle.presentationQueueFamilyIndex;
+		memoryBarrier_present_to_clear.dstQueueFamilyIndex = handle.presentationQueueFamilyIndex;
+		memoryBarrier_present_to_clear.image = swapchainImages.at(i);
+		memoryBarrier_present_to_clear.subresourceRange = imageSubresourceRange;
 
+		VkImageMemoryBarrier memoryBarrier_clear_to_present = {};
+		memoryBarrier_clear_to_present.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+		memoryBarrier_clear_to_present.pNext = nullptr;
+		memoryBarrier_clear_to_present.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; //srcAccessMask – Types of memory operations done on the image before the barrier.
+		memoryBarrier_clear_to_present.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT; //dstAccessMask – Types of memory operations that will take place after the barrier.
+		memoryBarrier_clear_to_present.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		memoryBarrier_clear_to_present.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		memoryBarrier_clear_to_present.srcQueueFamilyIndex = handle.presentationQueueFamilyIndex;
+		memoryBarrier_clear_to_present.dstQueueFamilyIndex = handle.presentationQueueFamilyIndex;
+		memoryBarrier_clear_to_present.image = swapchainImages.at(i);
+		memoryBarrier_clear_to_present.subresourceRange = imageSubresourceRange;
+
+		vkBeginCommandBuffer(handle.presentQueueCommandBuffers.at(i), &cmdBufferBeginInfo);
+		vkCmdPipelineBarrier(handle.presentQueueCommandBuffers.at(i), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+			0, 0, nullptr, 0, nullptr, 1, &memoryBarrier_present_to_clear);
+
+		vkCmdClearColorImage(handle.presentQueueCommandBuffers.at(i), swapchainImages.at(i), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			&clearColor, 1, &imageSubresourceRange);
+
+		vkCmdPipelineBarrier(handle.presentQueueCommandBuffers.at(i), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+			0, 0, nullptr, 0, nullptr, 1, &memoryBarrier_clear_to_present);
+
+		if (vkEndCommandBuffer(handle.presentQueueCommandBuffers.at(i)) != VK_SUCCESS) {
+			std::cout << "COULD NOT RECORD COMMAND BUFFER " << std::endl;
+			return false;
+		}
+	}
 	return true;
 }
+
+void Renderer::Clear() {
+	if (handle.device != VK_NULL_HANDLE) {
+		vkDeviceWaitIdle(handle.device);
+		if ((handle.presentQueueCommandBuffers.size() > 0) && (handle.presentQueueCommandBuffers.at(0) == VK_NULL_HANDLE)) {
+			vkFreeCommandBuffers(handle.device, handle.presentQueueCommandPool, static_cast<uint32_t>(handle.presentQueueCommandBuffers.size())
+				, handle.presentQueueCommandBuffers.data());
+			handle.presentQueueCommandBuffers.clear();
+		}
+
+		if (handle.presentQueueCommandPool != VK_NULL_HANDLE) {
+			vkDestroyCommandPool(handle.device, handle.presentQueueCommandPool, nullptr);
+			handle.presentQueueCommandPool = VK_NULL_HANDLE;
+		}
+	}
+}
+
 bool Renderer::OnWindowSizeChanged() {
 	Clear();
 
@@ -742,6 +817,10 @@ bool Renderer::PrepareVulkan(OS::WindowParameters parameters)
 	}
 
 	if (!GetDeviceQueue()) {
+		return false;
+	}
+
+	if (!CreateSemaphores()) {
 		return false;
 	}
 

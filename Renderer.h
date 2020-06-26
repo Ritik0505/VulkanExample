@@ -58,7 +58,7 @@ private:
 	bool GetDeviceQueue();
 	bool CreatePresentationSurface();
 	bool CreateSemaphores();
-	bool CreateSwapchain();
+	bool RecordCommandBuffers();
 	void Clear();
 
 	uint32_t GetSwapChainNumImages(VkSurfaceCapabilitiesKHR& surfaceCapabilities);
@@ -72,6 +72,7 @@ public:
 	Renderer();
 	~Renderer();
 
+	bool CreateSwapchain();
 	bool CreateCommandBuffers();
 	bool OnWindowSizeChanged() override;
 	bool Draw() override;

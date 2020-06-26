@@ -27,6 +27,8 @@ public:
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 	VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
 	VkSemaphore renderingFinishedSemaphore = VK_NULL_HANDLE;
+	std::vector<VkCommandBuffer> presentQueueCommandBuffers;
+	VkCommandPool presentQueueCommandPool = VK_NULL_HANDLE;
 
 };
 
@@ -57,14 +59,22 @@ private:
 	bool CreatePresentationSurface();
 	bool CreateSemaphores();
 	bool CreateSwapchain();
+	void Clear();
 
 	uint32_t GetSwapChainNumImages(VkSurfaceCapabilitiesKHR& surfaceCapabilities);
 	VkSurfaceFormatKHR GetSwapChainFormat(std::vector<VkSurfaceFormatKHR>& surfaceFormats);
 	VkExtent2D GetSwapChainExtent(VkSurfaceCapabilitiesKHR& surfaceCapabilities);
+	VkImageUsageFlags GetSwapChainUsageFlags(VkSurfaceCapabilitiesKHR& surfaceCapabilities);
+	VkSurfaceTransformFlagBitsKHR GetSwapChainTransform(VkSurfaceCapabilitiesKHR& surfaceCapabilities);
+	VkPresentModeKHR GetSwapChainPresentMode(std::vector<VkPresentModeKHR>& presentModes);
 
 public:
 	Renderer();
 	~Renderer();
+
+	bool CreateCommandBuffers();
+	bool OnWindowSizeChanged() override;
+	bool Draw() override;
 	bool PrepareVulkan( OS::WindowParameters parameters);
 
 };

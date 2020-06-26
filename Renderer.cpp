@@ -455,7 +455,7 @@ VkSurfaceFormatKHR Renderer::GetSwapChainFormat(std::vector<VkSurfaceFormatKHR>&
 	// It means that there are no preferred surface formats and any one can be chosen
 
 	if ((surfaceFormats.size() == 1) && (surfaceFormats.at(0).format == VK_FORMAT_UNDEFINED)) {
-		return VkSurfaceFormatKHR{ VK_FORMAT_R8G8B8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR });
+		return VkSurfaceFormatKHR{ VK_FORMAT_R8G8B8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR };
 	}
 
 	//Else check if list contains R8 G8 B8 A8 format with Non Linear ColorSpace
@@ -557,6 +557,85 @@ Renderer::~Renderer() {
 	dlclose(VulkanLibrary);
 #endif
 	}
+}
+
+bool Renderer::OnWindowSizeChanged() {
+	Clear();
+
+	if (!CreateSwapchain()) {
+		return false;
+	}
+
+	if (!CreateCommandBuffers()) {
+		return false;
+	}
+
+	return true;
+}
+
+bool Renderer::Draw()
+{
+	uint32_t imageIndex;
+	VkResult result = vkAcquireNextImageKHR(handle.device, handle.swapChain, UINT32_MAX, handle.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+	
+	switch (result)
+	{
+	case VK_SUCCESS:
+	case VK_SUBOPTIMAL_KHR:
+		break;
+	case VK_ERROR_OUT_OF_DATE_KHR:
+		return OnWindowSizeChanged();
+	
+	default:
+		std::cout << "COULD NOT ACQUIRE SWAPCHAIN IMAGE " << std::endl;
+		return false;
+	}
+
+	VkPipelineStageFlags wait_Dst_StageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.pNext = nullptr;
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &handle.imageAvailableSemaphore;
+	submitInfo.pWaitDstStageMask = &wait_Dst_StageMask;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &handle.presentQueueCommandBuffers[imageIndex];
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = &handle.renderingFinishedSemaphore;
+
+	if (vkQueueSubmit(handle.presentQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+		return false;
+	}
+
+	VkPresentInfoKHR presentInfo = {};
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	presentInfo.pNext = nullptr;
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = &handle.renderingFinishedSemaphore;
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = &handle.swapChain;
+	presentInfo.pImageIndices = &imageIndex;
+
+//	pResults – A pointer to an array of at least swapchainCount element; this parameter is optional and can be set to null,
+//	but if we provide such an array, the result of the presenting operation will be stored in each of its elements, for each swap chain respectively; 
+//	a single value returned by the whole function is the same as the worst result value from all swap chains.
+	presentInfo.pResults = nullptr;
+
+	result = vkQueuePresentKHR(handle.presentQueue, &presentInfo);
+	switch (result)
+	{
+	case VK_SUCCESS:
+	case VK_SUBOPTIMAL_KHR:
+		break;
+	case VK_ERROR_OUT_OF_DATE_KHR:
+		return OnWindowSizeChanged();
+
+	default:
+		std::cout << "COULD NOT ACQUIRE SWAPCHAIN IMAGE " << std::endl;
+		return false;
+	}
+
+	return true;
 }
 
 bool Renderer::PrepareVulkan(OS::WindowParameters parameters)

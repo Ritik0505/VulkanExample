@@ -69,7 +69,7 @@ private:
 	VkPresentModeKHR GetSwapChainPresentMode(std::vector<VkPresentModeKHR>& presentModes);
 
 public:
-	Renderer();
+	//Renderer();
 	~Renderer();
 
 	bool CreateSwapchain();

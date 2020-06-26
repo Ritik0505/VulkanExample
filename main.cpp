@@ -5,7 +5,7 @@ int main() {
 	OS::Window window;
 	Renderer r;
 
-	if (!window.Create("Vulkan Example")) {
+	if (!window.Create(L"Vulkan Example")) {
 		return -1;
 	}
 	r.PrepareVulkan(window.GetParameters());

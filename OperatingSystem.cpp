@@ -30,7 +30,7 @@
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 
-#define SERIES_NAME "API without Secrets: Introduction to Vulkan"
+#define SERIES_NAME L"API without Secrets: Introduction to Vulkan"
 
     LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam ) {
       switch( message ) {
@@ -58,7 +58,7 @@
       }
     }
 
-    bool Window::Create( const char *title ) {
+    bool Window::Create( const LPCWSTR& title ) {
       Parameters.Instance = GetModuleHandle( nullptr );
 
       // Register window class

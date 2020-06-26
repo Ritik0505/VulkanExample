@@ -14,6 +14,12 @@
 // under the License.
 ////////////////////////////////////////////////////////////////////////////////
 
+#if defined _WIN32
+#define VK_USE_PLATFORM_WIN32_KHR
+#elif defined __linux__
+#define VK_USE_PLATFORM_XCB_KHR
+#endif
+
 #if !defined(OPERATING_SYSTEM_HEADER)
 #define OPERATING_SYSTEM_HEADER
 
@@ -123,7 +129,7 @@
       Window();
       ~Window();
 
-      bool              Create( const char *title );
+      bool              Create( const LPCWSTR& title );
       bool              RenderingLoop( ProjectBase &project ) const;
       WindowParameters  GetParameters() const;
 

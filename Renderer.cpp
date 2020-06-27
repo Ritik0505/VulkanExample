@@ -157,18 +157,17 @@ bool Renderer::CreateLogicalDevice()
 		return false;
 	}
 
-	VkPhysicalDevice selectedDevice = VK_NULL_HANDLE;
 	uint32_t selectedGraphicsQueueFamilyIndex = UINT32_MAX;
 	uint32_t selectedPresentQueueFamilyIndex = UINT32_MAX;
 
 	for (auto device : PhysicalDevices) {
 		if (CheckPhysicalDeviceProperties(device, selectedGraphicsQueueFamilyIndex, selectedPresentQueueFamilyIndex)) {
-			selectedDevice = device;
+			handle.physicalDevice = device;
 			break;
 		}
 	}
 
-	if (selectedDevice == VK_NULL_HANDLE) {
+	if (handle.physicalDevice == VK_NULL_HANDLE) {
 		std::cout << "**COULD NOT SELECT PHYSICAL DEVICE OF SELECTED PROPERTIES**" << std::endl;
 		return false;
 	}
@@ -211,7 +210,7 @@ bool Renderer::CreateLogicalDevice()
 	deviceCreateInfo.ppEnabledExtensionNames = requiredExtensions.data();
 	deviceCreateInfo.pEnabledFeatures = nullptr;
 
-	if (vkCreateDevice(selectedDevice, &deviceCreateInfo, nullptr, &handle.device) != VK_SUCCESS) {
+	if (vkCreateDevice(handle.physicalDevice, &deviceCreateInfo, nullptr, &handle.device) != VK_SUCCESS) {
 		std::cout << "**COULD NOT CREATE LOGICAL DEVICE**" << std::endl;
 		return false;
 	}
@@ -325,9 +324,11 @@ bool Renderer::CreatePresentationSurface()
 	surfaceCreateInfo.hinstance = window.Instance;
 	surfaceCreateInfo.hwnd = window.Handle;
 
-	if (vkCreateWin32SurfaceKHR(handle.instance, &surfaceCreateInfo, nullptr, &handle.presentationSurface) == VK_SUCCESS) {
-		return true;
+	if (vkCreateWin32SurfaceKHR(handle.instance, &surfaceCreateInfo, nullptr, &handle.presentationSurface) != VK_SUCCESS) {
+		std::cout << "FAILED TO CREATE PRESENTATION SURFACE " << std::endl;
+		return false;
 	}
+	return true;
 
 #elif defined VK_USE_PLATFORM_XCB_KHR
 	VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = {};
@@ -443,7 +444,7 @@ bool Renderer::CreateSwapchain()
 uint32_t Renderer::GetSwapChainNumImages(VkSurfaceCapabilitiesKHR& surfaceCapabilities)
 {
 	uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
-	if ((surfaceCapabilities.maxImageCount > 0) && (imageCount > surfaceCapabilities.minImageCount)){
+	if ((surfaceCapabilities.maxImageCount > 0) && (imageCount > surfaceCapabilities.maxImageCount)){
 	imageCount = surfaceCapabilities.maxImageCount;
 }
  	return uint32_t(imageCount);
@@ -597,7 +598,7 @@ bool Renderer::CreateCommandBuffers()
 		return false;
 	}
 
-	handle.presentQueueCommandBuffers.resize(imageCount);
+	handle.presentQueueCommandBuffers.resize(imageCount, VK_NULL_HANDLE);
 	VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
 	commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	commandBufferAllocateInfo.pNext = nullptr;
@@ -621,7 +622,7 @@ bool Renderer::CreateCommandBuffers()
 bool Renderer::RecordCommandBuffers() {
 	uint32_t imageCount = static_cast<uint32_t>(handle.presentQueueCommandBuffers.size());
 
-	std::vector<VkImage> swapchainImages(imageCount);
+	std::vector<VkImage> swapchainImages(imageCount, VK_NULL_HANDLE);
 	if (vkGetSwapchainImagesKHR(handle.device, handle.swapChain, &imageCount, swapchainImages.data()) != VK_SUCCESS) {
 		std::cout << "COULD NOT GET SWAPCHAIN IMAGES HANDLES " << std::endl;
 		return false;
@@ -644,11 +645,11 @@ bool Renderer::RecordCommandBuffers() {
 	imageSubresourceRange.baseArrayLayer = 0;
 	imageSubresourceRange.layerCount = 1;
 
-	for (uint32_t i = 0; i < imageCount; i++) {
+	for (size_t i = 0; i < imageCount; ++i) {
 		VkImageMemoryBarrier memoryBarrier_present_to_clear = {};
-		memoryBarrier_present_to_clear.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+		memoryBarrier_present_to_clear.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		memoryBarrier_present_to_clear.pNext = nullptr;
-		memoryBarrier_present_to_clear.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT; //srcAccessMask – Types of memory operations done on the image before the barrier.
+		memoryBarrier_present_to_clear.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT; //srcAccessMask – Types of memory operations done on the image before the barrier.
 		memoryBarrier_present_to_clear.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; //dstAccessMask – Types of memory operations that will take place after the barrier.
 		memoryBarrier_present_to_clear.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		memoryBarrier_present_to_clear.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -658,10 +659,10 @@ bool Renderer::RecordCommandBuffers() {
 		memoryBarrier_present_to_clear.subresourceRange = imageSubresourceRange;
 
 		VkImageMemoryBarrier memoryBarrier_clear_to_present = {};
-		memoryBarrier_clear_to_present.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+		memoryBarrier_clear_to_present.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		memoryBarrier_clear_to_present.pNext = nullptr;
 		memoryBarrier_clear_to_present.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; //srcAccessMask – Types of memory operations done on the image before the barrier.
-		memoryBarrier_clear_to_present.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT; //dstAccessMask – Types of memory operations that will take place after the barrier.
+		memoryBarrier_clear_to_present.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT; //dstAccessMask – Types of memory operations that will take place after the barrier.
 		memoryBarrier_clear_to_present.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		memoryBarrier_clear_to_present.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 		memoryBarrier_clear_to_present.srcQueueFamilyIndex = handle.presentationQueueFamilyIndex;
@@ -670,7 +671,7 @@ bool Renderer::RecordCommandBuffers() {
 		memoryBarrier_clear_to_present.subresourceRange = imageSubresourceRange;
 
 		vkBeginCommandBuffer(handle.presentQueueCommandBuffers.at(i), &cmdBufferBeginInfo);
-		vkCmdPipelineBarrier(handle.presentQueueCommandBuffers.at(i), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+		vkCmdPipelineBarrier(handle.presentQueueCommandBuffers.at(i), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
 			0, 0, nullptr, 0, nullptr, 1, &memoryBarrier_present_to_clear);
 
 		vkCmdClearColorImage(handle.presentQueueCommandBuffers.at(i), swapchainImages.at(i), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,

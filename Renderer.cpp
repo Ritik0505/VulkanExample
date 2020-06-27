@@ -434,10 +434,7 @@ bool Renderer::CreateSwapchain()
 		return false;
 	}
 
-	if (handle.swapChain != VK_NULL_HANDLE) {
-		vkDestroySwapchainKHR(handle.device, handle.swapChain, nullptr);
-	}
-	
+	CanRender = true;
 	return true;
 }
 

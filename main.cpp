@@ -1,9 +1,9 @@
-#include "Renderer.h"
+#include "VulkanBase.h"
 
 int main() {
 
 	OS::Window window;
-	Renderer r;
+	VulkanBase r;
 
 	if (!window.Create(L"Vulkan Example")) {
 		return -1;

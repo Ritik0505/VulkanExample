@@ -154,11 +154,14 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="OperatingSystem.cpp" />
     <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="VulkanBase.cpp" />
     <ClCompile Include="VulkanFunctions.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Deleter.h" />
     <ClInclude Include="OperatingSystem.h" />
     <ClInclude Include="Renderer.h" />
+    <ClInclude Include="VulkanBase.h" />
     <ClInclude Include="VulkanFunctions.h" />
   </ItemGroup>
   <ItemGroup>

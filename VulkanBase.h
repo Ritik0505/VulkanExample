@@ -89,6 +89,11 @@ public:
 	std::vector<VkCommandBuffer> presentQueueCommandBuffers;
 	VkCommandPool presentQueueCommandPool = VK_NULL_HANDLE;
 
+	VkRenderPass renderPass;
+	std::vector<VkFramebuffer> frameBuffers;
+	VkPipeline graphicsPipeline;
+	VkCommandPool graphicsCommandPool;
+	std::vector<VkCommandBuffer> graphicsCommandBuffers;
 };
 
 extern VulkanHandles handle;

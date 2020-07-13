@@ -1,4 +1,12 @@
 #pragma once
+#define VK_NO_PROTOTYPES
+
+#if defined _WIN32
+#define VK_USE_PLATFORM_WIN32_KHR
+#elif defined __linux__
+#define VK_USE_PLATFORM_XCB_KHR
+#endif
+
 #include "VulkanBase.h"
 #include "Deleter.h"
 

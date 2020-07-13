@@ -85,6 +85,16 @@ bool VulkanBase::CheckExtensionAvailability(const char* extension, const std::ve
 	return false;
 }
 
+
+VkDevice VulkanBase::GetDevice() const{
+	return handle.device;
+}
+
+const SwapChainParameters& VulkanBase::GetSwapChain() const
+{
+	// TODO: insert return statement here
+}
+
 bool VulkanBase::CreateVulkanInstance() {
 
 	uint32_t extensionCount = 0;
